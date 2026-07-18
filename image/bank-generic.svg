@@ -1,0 +1,5 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 64 64" role="img" aria-label="Ngân hàng">
+  <rect width="64" height="64" rx="12" fill="#E8F4FF"/>
+  <path d="M32 12 10 24v4h44v-4L32 12Zm-14 12v18h8V26h-8Zm12 0v18h8V26h-8Zm12 0v18h8V26h-8Zm12 0v18h8V26h-8Z" fill="#141ED2"/>
+  <rect x="10" y="46" width="44" height="6" rx="2" fill="#141ED2"/>
+</svg>

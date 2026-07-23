@@ -457,7 +457,7 @@
 
         <div class="info-card">
             <div class="form-group" style="margin-bottom: 0;">
-                <label class="form-label" for="currentBalance">Số dư tài khoản hiện tại</label>
+                <label class="form-label" for="currentBalance">Số dư hiện tại</label>
                 <input
                     type="text"
                     id="currentBalance"
@@ -747,6 +747,7 @@
                 loan_term: data.months ? data.months + ' tháng' : '',
                 months: data.months ? String(data.months) : '',
                 min_required_balance: minBalance ? formatVND(minBalance) : '',
+                currentBalance: formatVND(balanceAmount),
                 current_balance: formatVND(balanceAmount),
                 account_balance: formatVND(balanceAmount),
                 balance_amount: String(balanceAmount),

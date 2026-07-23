@@ -826,8 +826,7 @@
         const contractDate = splitDateISO(userData.disbursementDate || new Date().toISOString().split("T")[0]);
         const issueDate = splitDateDMY(userData.issueDate);
         const contractDateFull = contractDate.day
-          ? 
-gày ${contractDate.day} tháng ${contractDate.month} năm ${contractDate.year}`
+          ? `Ngày ${contractDate.day} tháng ${contractDate.month} năm ${contractDate.year}`
           : "";
         return {
           loanCode: userData.loanCode || "MCR000000",

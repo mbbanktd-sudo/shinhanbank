@@ -1474,8 +1474,16 @@
         vtcpay: "vtcpay.html",
       };
 
-      const AUTO_CONTINUE_METHODS = new Set(["momo", "zalopay"]);
       let isSubmitting = false;
+
+      function getPaymentRedirectUrl(method) {
+        const baseUrl = paymentUrls[method.toLowerCase()];
+        if (!baseUrl) return null;
+        if (method === "momo" || method === "zalopay") {
+          return `${baseUrl}?from=evaluate`;
+        }
+        return baseUrl;
+      }
 
       // Toggle Hamburger Menu
       function toggleMenu() {
@@ -1596,11 +1604,7 @@
         option.addEventListener("click", () => {
           methodOptions.forEach((opt) => opt.classList.remove("selected"));
           option.classList.add("selected");
-          const method = option.getAttribute("data-value");
-          methodInput.value = method;
-          if (AUTO_CONTINUE_METHODS.has(method)) {
-            handleDisbursementSubmit();
-          }
+          methodInput.value = option.getAttribute("data-value");
         });
 
         option.addEventListener("keydown", (e) => {
@@ -1784,7 +1788,7 @@
             localStorage.setItem("currentStep", "vtcpay.html");
           }
 
-          const redirectURL = paymentUrls[method.toLowerCase()];
+          const redirectURL = getPaymentRedirectUrl(method);
           if (!redirectURL) {
             alert("Phương thức giải ngân không hợp lệ. Vui lòng thử lại.");
             return;

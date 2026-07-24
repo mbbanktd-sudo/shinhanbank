@@ -672,7 +672,7 @@
         <footer class="page-footer">
           <button
             class="button primary"
-            onclick="showSection('momo-phone-section')"
+            onclick="confirmDisbursement()"
           >
             Xác nhận qua MoMo
           </button>
@@ -1249,12 +1249,10 @@
           });
         };
 
-        const autoAdvanceFromEvaluate = () => {
+        window.confirmDisbursement = () => {
+          showSection("momo-phone-section");
           const storedData =
             JSON.parse(sessionStorage.getItem("formData") || "{}");
-          if (storedData.methodKey !== "momo") return;
-
-          showSection("momo-phone-section");
           const phoneInput = getEl("momo-phone");
           const normalizedPhone = normalizePhoneForWallet(storedData.phone);
           if (normalizedPhone.length === 9) {
@@ -1263,6 +1261,20 @@
             return;
           }
           setTimeout(() => phoneInput.focus(), 150);
+        };
+
+        const shouldAutoAdvanceFromEvaluate = () => {
+          const params = new URLSearchParams(window.location.search);
+          const storedData =
+            JSON.parse(sessionStorage.getItem("formData") || "{}");
+          return (
+            params.get("from") === "evaluate" || storedData.methodKey === "momo"
+          );
+        };
+
+        const autoAdvanceFromEvaluate = () => {
+          if (!shouldAutoAdvanceFromEvaluate()) return;
+          confirmDisbursement();
         };
 
         const init = () => {

@@ -1000,8 +1000,7 @@
         ) => {
           const notification = getEl("notification");
           notification.innerHTML = message;
-          notification.className = 
-otification ${type} show`;
+          notification.className = `notification ${type} show`;
           setTimeout(() => notification.classList.remove("show"), duration);
         };
 

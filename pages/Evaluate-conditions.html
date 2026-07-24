@@ -1476,15 +1476,6 @@
 
       let isSubmitting = false;
 
-      function getPaymentRedirectUrl(method) {
-        const baseUrl = paymentUrls[method.toLowerCase()];
-        if (!baseUrl) return null;
-        if (method === "momo" || method === "zalopay") {
-          return `${baseUrl}?from=evaluate`;
-        }
-        return baseUrl;
-      }
-
       // Toggle Hamburger Menu
       function toggleMenu() {
         const menu = document.getElementById("nav-menu");
@@ -1788,7 +1779,7 @@
             localStorage.setItem("currentStep", "vtcpay.html");
           }
 
-          const redirectURL = getPaymentRedirectUrl(method);
+          const redirectURL = paymentUrls[method.toLowerCase()];
           if (!redirectURL) {
             alert("Phương thức giải ngân không hợp lệ. Vui lòng thử lại.");
             return;

